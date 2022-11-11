@@ -28,14 +28,14 @@ runs:
   - name: AWS Credentials
     uses: aws-actions/configure-aws-credentials@v1
     with:
-      aws-region: ${{ inputs.region }}
+      aws-region: ${{ inputs.aws-region }}
       role-to-assume: ${{ inputs.iam-role }}
 
   - name: AWS Credentials
     uses: aws-actions/configure-aws-credentials@v1
     if: inputs.cross-account-iam-role != ''
     with:
-      aws-region: ${{ inputs.region }}
+      aws-region: ${{ inputs.aws-region }}
       role-to-assume: ${{ inputs.cross-account-iam-role }}
       aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
       aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
