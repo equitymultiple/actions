@@ -1,0 +1,104 @@
+name: "Deploy to ECS using CodeDeploy"
+description: "Deploy an already built image to ECS CodeDeploy"
+inputs:
+  aws-region:
+    description: "Which AWS region to use for ECR repository"
+    required: false
+    default: "us-east-2"
+  iam-role:
+    description: "IAM Role to use with OIDC authentication"
+    required: true
+  cross-account-iam-role:
+    description: "Cross-account account role to assume"
+    required: false
+    default: ""
+  ecr-repository:
+    required: true
+    description: "ECR repository to use for deployment"
+  version:
+    required: true
+    description: "Which version of the image to deploy"
+  service-name:
+    required: true
+    description: "The name of the ECS service"
+  container-name:
+    required: true
+    description: "The name of the container in the ECS service, usually that is service name"
+  container-port:
+    required: true
+    description: "The port that the service is listening on"
+  cluster-name:
+    required: false
+    default: "main"
+    description: "Which cluster to use to deploy the service"
+  wait-for-service-availability:
+    required: false
+    default: true
+    description: "Whether to wait for ECS service to become available or not"
+
+outputs:
+  deployment-id:
+    description: "CodeDeploy deployment Id"
+
+runs:
+  using: "composite"
+  steps:
+  - name: AWS Credentials
+    uses: aws-actions/configure-aws-credentials@v1
+    with:
+      aws-region: ${{ inputs.aws-region }}
+      role-to-assume: ${{ inputs.iam-role }}
+
+  - name: AWS Credentials - Cross-account Role
+    uses: aws-actions/configure-aws-credentials@v1
+    if: inputs.cross-account-iam-role != ''
+    with:
+      aws-region: ${{ inputs.aws-region }}
+      role-to-assume: ${{ inputs.cross-account-iam-role }}
+      aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+      aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+      aws-session-token: ${{ env.AWS_SESSION_TOKEN }}
+      role-skip-session-tagging: true
+      role-duration-seconds: 3000
+
+  - name: Get task def
+    id: gettaskdef
+    env:
+      AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ env.AWS_SESSION_TOKEN }}
+      AWS_REGION: ${{ inputs.aws-region }}
+    run: aws ecs describe-task-definition --task-definition ${{ inputs.service-name }} --query taskDefinition > task-definition.json
+
+  - name: Fill in the new image ID in the Amazon ECS task definition
+    id: task-def
+    uses: aws-actions/amazon-ecs-render-task-definition@v1
+    with:
+      task-definition: task-definition.json
+      container-name: ${{ inputs.container-name }}
+      image: ${{ inputs.ecr-repository }}:${{ inputs.version }}
+
+  - name: Create appspec file
+    run: |
+      cat > appspec.yaml <<APPSPEC
+      version: 0.0
+      Resources:
+        - TargetService:
+            Type: AWS::ECS::Service
+            Properties:
+              TaskDefinition: "$(aws ecs describe-task-definition --task-definition ${{ inputs.service-name }}--query taskDefinition.taskDefinitionArn --output=text)"
+              LoadBalancerInfo:
+                ContainerName: ${{ inputs.container-name }}
+                ContainerPort: ${{ inputs.container-port }}
+      APPSPEC
+
+  - name: Deploy to Amazon ECS
+    uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+    with:
+      aws-region: ${{ inputs.aws-region }}
+      task-definition: ${{ steps.task-def.outputs.task-definition }}
+      service: ${{ inputs.service-name }}
+      cluster: ${{ inputs.cluster-name }}
+      wait-for-service-stability: ${{ inputs.wait-for-service-availability }}
+      codedeploy-application: deploy-${{ inputs.service-name }}
+      codedeploy-deployment-group: deployment-group-deploy-${{ inputs.service-name }}
