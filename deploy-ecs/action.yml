@@ -63,6 +63,7 @@ runs:
 
   - name: Get task def
     id: gettaskdef
+    shell: bash
     env:
       AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
@@ -79,6 +80,7 @@ runs:
       image: ${{ inputs.ecr-repository }}:${{ inputs.version }}
 
   - name: Create appspec file
+    shell: bash
     run: |
       cat > appspec.yaml <<APPSPEC
       version: 0.0
