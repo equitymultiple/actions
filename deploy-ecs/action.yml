@@ -88,7 +88,7 @@ runs:
         - TargetService:
             Type: AWS::ECS::Service
             Properties:
-              TaskDefinition: "$(aws ecs describe-task-definition --task-definition ${{ inputs.service-name }}--query taskDefinition.taskDefinitionArn --output=text)"
+              TaskDefinition: "$(aws ecs describe-task-definition --task-definition ${{ inputs.service-name }} --query taskDefinition.taskDefinitionArn --output=text)"
               LoadBalancerInfo:
                 ContainerName: ${{ inputs.container-name }}
                 ContainerPort: ${{ inputs.container-port }}
