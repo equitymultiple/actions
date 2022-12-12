@@ -1,0 +1,77 @@
+name: "Deploy a React application to S3 and CloudFront"
+description: "Build a React app, sync the build to S3, and invalidate the CloudFront cache"
+inputs:
+  aws-region:
+    description: "Which AWS region to use"
+    required: false
+    default: "us-east-2"
+  iam-role:
+    description: "IAM Role to use with OIDC authentication"
+    required: true
+  cross-account-iam-role:
+    description: "Cross-account account role to assume"
+    required: false
+    default: ""
+  application-name:
+    required: true
+    description: "The name of the frontend service"
+  environment:
+    required: false
+    description: "Full name of the deployment environment to deploy to"
+    default: development
+  node-version:
+    required: false
+    description: "Version of node to use"
+    default: "16.18.0"
+
+env:
+  ORIGIN_NAME: equitymultiple-${{ inputs.environment }}-${{ inputs.application-name }}-origin
+
+runs:
+  using: "composite"
+  steps:
+  - name: AWS Credentials
+    uses: aws-actions/configure-aws-credentials@v1
+    with:
+      aws-region: ${{ inputs.aws-region }}
+      role-to-assume: ${{ inputs.iam-role }}
+
+  - name: AWS Credentials - Cross-account Role
+    uses: aws-actions/configure-aws-credentials@v1
+    if: inputs.cross-account-iam-role != ''
+    with:
+      aws-region: ${{ inputs.aws-region }}
+      role-to-assume: ${{ inputs.cross-account-iam-role }}
+      aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+      aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+      aws-session-token: ${{ env.AWS_SESSION_TOKEN }}
+      role-skip-session-tagging: true
+      role-duration-seconds: 3000
+
+  - name: Set Node.js
+    uses: actions/setup-node@v3
+    with:
+      node-version: ${{ env.NODE_VERSION }}
+
+  - name: Run install
+    uses: borales/actions-yarn@v4
+    with:
+      cmd: install # will run `yarn install` command
+
+  - name: Run install
+    uses: borales/actions-yarn@v4
+    with:
+      cmd: build # will run `yarn build` command
+
+  - name: Sync the build folder to S3 bucket
+    id: sync-s3
+    run: aws s3 sync ./build/ s3://${{ env.ORIGIN_NAME }}
+
+  - name: Get CloudFront distribution
+    id: get-cloudfront-id
+    run: |
+    CLOUDFRONT_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[*].{id:Id,origin:Origins.Items[0].Id}[?origin=='${{ env.ORIGIN_NAME }}']" | jq -r ".[0].id")
+    echo "CLOUDFRONT_ID=$CLOUDFRONT_ID" >> $GITHUB_OUTPUT
+
+  - name: Invalidate CloudFront cache
+    run: aws cloudfront create-invalidation --distribution-id ${{ steps.get-cloudfront-id.outputs.CLOUDFRONT_ID }}" --paths "/*"
