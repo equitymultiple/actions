@@ -24,9 +24,6 @@ inputs:
     description: "Version of node to use"
     default: "16.18.0"
 
-env:
-  ORIGIN_NAME: equitymultiple-${{ inputs.environment }}-${{ inputs.application-name }}-origin
-
 runs:
   using: "composite"
   steps:
@@ -66,13 +63,13 @@ runs:
   - name: Sync the build folder to S3 bucket
     id: sync-s3
     shell: bash
-    run: aws s3 sync ./build/ s3://${{ env.ORIGIN_NAME }}
+    run: aws s3 sync ./build/ s3://equitymultiple-${{ inputs.environment }}-${{ inputs.application-name }}-origin
 
   - name: Get CloudFront distribution
     id: get-cloudfront-id
     shell: bash
     run: |
-    CLOUDFRONT_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[*].{id:Id,origin:Origins.Items[0].Id}[?origin=='${{ env.ORIGIN_NAME }}']" | jq -r ".[0].id")
+    CLOUDFRONT_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[*].{id:Id,origin:Origins.Items[0].Id}[?origin=='equitymultiple-${{ inputs.environment }}-${{ inputs.application-name }}-origin']" | jq -r ".[0].id")
     echo "CLOUDFRONT_ID=$CLOUDFRONT_ID" >> $GITHUB_OUTPUT
 
   - name: Invalidate CloudFront cache
