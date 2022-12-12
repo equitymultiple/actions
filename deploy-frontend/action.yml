@@ -71,7 +71,7 @@ runs:
     id: get-cloudfront-id
     shell: bash
     run: |
-      CLOUDFRONT_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[*].{id:Id,origin:Origins.Items[0].Id}[?origin=='equitymultiple-${{ inputs.environment }}-${{ inputs.application-name }}-origin']" | jq -r ".[0].id")
+      CLOUDFRONT_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[*].{id:Id,origin:Origins.Items[0].Id}[?origin=='equitymultiple-${{ inputs.environment }}-${{ inputs.application-name }}']" | jq -r ".[0].id")
       echo "CLOUDFRONT_ID=$CLOUDFRONT_ID" >> $GITHUB_OUTPUT
 
   - name: Invalidate CloudFront cache
