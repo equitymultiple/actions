@@ -76,4 +76,4 @@ runs:
 
   - name: Invalidate CloudFront cache
     shell: bash
-    run: aws cloudfront create-invalidation --distribution-id ${{ steps.get-cloudfront-id.outputs.CLOUDFRONT_ID }}" --paths "/*"
+    run: aws cloudfront create-invalidation --distribution-id ${{ steps.get-cloudfront-id.outputs.CLOUDFRONT_ID }}" --paths "/"
