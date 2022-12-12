@@ -45,6 +45,8 @@ runs:
       role-skip-session-tagging: true
       role-duration-seconds: 3000
 
+  - uses: actions/checkout@v3
+
   - name: Set Node.js
     uses: actions/setup-node@v3
     with:
