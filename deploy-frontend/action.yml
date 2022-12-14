@@ -19,10 +19,9 @@ inputs:
     required: false
     description: "Full name of the deployment environment to deploy to"
     default: development
-  node-version:
-    required: false
-    description: "Version of node to use"
-    default: "16.18.0"
+  artifact-name:
+    required: true
+    description: "Name of the artifact to deploy"
 
 runs:
   using: "composite"
@@ -44,6 +43,10 @@ runs:
       aws-session-token: ${{ env.AWS_SESSION_TOKEN }}
       role-skip-session-tagging: true
       role-duration-seconds: 3000
+
+  - uses: actions/download-artifact@v3
+    with:
+      name: ${{ inputs.artifact-name }}
 
   - name: Sync the build folder to S3 bucket
     id: sync-s3
