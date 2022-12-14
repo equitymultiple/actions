@@ -49,10 +49,6 @@ runs:
       name: ${{ inputs.artifact-name }}
       path: build
 
-  - name: Display structure of downloaded files
-    shell: bash
-    run: ls -R
-
   - name: Sync the build folder to S3 bucket
     id: sync-s3
     shell: bash
