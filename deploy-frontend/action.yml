@@ -47,6 +47,7 @@ runs:
   - uses: actions/download-artifact@v3
     with:
       name: ${{ inputs.artifact-name }}
+      path: build
 
   - name: Display structure of downloaded files
     shell: bash
