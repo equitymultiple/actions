@@ -52,16 +52,6 @@ runs:
     with:
       node-version: ${{ env.NODE_VERSION }}
 
-  - name: Run install
-    uses: borales/actions-yarn@v4
-    with:
-      cmd: install # will run `yarn install` command
-
-  - name: Run install
-    uses: borales/actions-yarn@v4
-    with:
-      cmd: build # will run `yarn build` command
-
   - name: Sync the build folder to S3 bucket
     id: sync-s3
     shell: bash
