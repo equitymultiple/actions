@@ -35,6 +35,10 @@ inputs:
     required: false
     default: true
     description: "Whether to wait for ECS service to become available or not"
+  migrate-db:
+    required: false
+    default: false
+    description: "Whether to add the BeforeInstall hook to the AppSpec file that runs database migrations"
 
 outputs:
   deployment-id:
@@ -92,6 +96,15 @@ runs:
               LoadBalancerInfo:
                 ContainerName: ${{ inputs.container-name }}
                 ContainerPort: ${{ inputs.container-port }}
+      APPSPEC
+
+  - name: Add db migration hook to appspec file
+    if: inputs.migrate-db
+    shell: bash
+    run: |
+      cat >> appspec.yaml <<APPSPEC
+      Hooks:
+        - BeforeInstall: "db-migration-ecs-codedeploy-hook"
       APPSPEC
 
   - name: Deploy to Amazon ECS
